@@ -2,12 +2,17 @@ import pygame
 from utils import logger
 import math
 
+# Define the customization_menu variable
+# Bu eklenmeli mi ?
+customization_menu = None
+
 class Cat(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.original_image = pygame.image.load("V2/assets/cat.png").convert_alpha()
-        self.original_image = pygame.transform.scale(self.original_image, (self.original_image.get_width() // 4, self.original_image.get_height() // 4))
-        self.rect = self.original_image.get_rect(topleft=(x, y))
+        self.image = pygame.image.load("V2/assets/cat.png").convert_alpha()
+        self.image = pygame.transform.scale(self.image, (self.image.get_width() // 4, self.image.get_height() // 4))
+        self.original_image = self.image
+        self.rect = self.image.get_rect(topleft=(x, y))
         self.hunger = 100
         self.happiness = 100
         self.sleep = 100
@@ -17,13 +22,17 @@ class Cat(pygame.sprite.Sprite):
         self.show_menu = False
         self.walking_animation = False
         self.animation_counter = 0
-        self.animation_speed = 5  # Daha düşük değer daha hızlı animasyon
-        self.walking_images = [
-            pygame.transform.scale(pygame.image.load("V2/assets/cat_walking.png").convert_alpha(), (self.original_image.get_width(), self.original_image.get_height())),
-            pygame.transform.scale(pygame.image.load("V2/assets/cat_walking2.png").convert_alpha(), (self.original_image.get_width(), self.original_image.get_height()))
+        self.animation_speed = 5
+        self.walking_images_right = [
+            pygame.transform.scale(pygame.image.load("V2/assets/cat_walking.png").convert_alpha(), (self.image.get_width(), self.image.get_height())),
+            pygame.transform.scale(pygame.image.load("V2/assets/cat_walking2.png").convert_alpha(), (self.image.get_width(), self.image.get_height()))
+        ]
+        self.walking_images_left = [
+            pygame.transform.scale(pygame.image.load("V2/assets/cat_walking_left.png").convert_alpha(), (self.image.get_width(), self.image.get_height())),
+            pygame.transform.scale(pygame.image.load("V2/assets/cat_walking_left2.png").convert_alpha(), (self.image.get_width(), self.image.get_height()))
         ]
         self.current_walking_image = 0
-        self.image = self.original_image  # Başlangıçta orijinal görseli kullan
+        self.direction = "right"
 
     def update(self, house):
         if self.is_sleeping:
@@ -47,13 +56,28 @@ class Cat(pygame.sprite.Sprite):
         if not extended_house_rect.colliderect(self.rect):
             self.is_inside_house = False
 
+        # Yürüme animasyonu kontrolü
         if self.walking_animation:
-            #print("Kedinin yürüme animasyonu aktif")
+            #print("Animasyon çalışıyor.")
             self.animation_counter += 1
             if self.animation_counter >= self.animation_speed:
                 self.animation_counter = 0
-                self.current_walking_image = (self.current_walking_image + 1) % len(self.walking_images)
-                self.image = self.walking_images[self.current_walking_image]
+                self.current_walking_image = (self.current_walking_image + 1) % len(self.walking_images_right)
+                if self.direction == "right":
+                    self.image = self.walking_images_right[self.current_walking_image]
+                elif self.direction == "left":
+                    self.image = self.walking_images_left[self.current_walking_image]
+
+            # Kedinin mevcut hızı
+            dx = abs(self.rect.centerx - house.rect.centerx) # Evin merkezi ile aradaki mesafe (gereksiz, silinecek)
+            dy = abs(self.rect.centery - house.rect.centery) # Evin merkezi ile aradaki mesafe (gereksiz, silinecek)
+
+            # Eğer kedi hareket etmiyorsa ve animasyon açıksa, animasyonu durdur
+            if not (dx > 1 or dy > 1):  # Kedinin hareket edip etmediğini kontrol et
+                self.walking_animation = False
+                self.animation_counter = 0
+                self.current_walking_image = 0
+                self.image = self.original_image  # Orijinal görsele dön
         else:
             #print("Kedinin yürüme animasyonu kapalı")
             self.image = self.original_image  # Animasyon yoksa orijinal görseli kullan
@@ -70,7 +94,7 @@ class Cat(pygame.sprite.Sprite):
             self.walking_animation = False
             self.animation_counter = 0
             self.current_walking_image = 0
-            self.image = self.original_image
+            self.image = self.original_image  # Orijinal görsele dön
             print("Kedi hedefe ulaştı, animasyon durduruldu.")
             return
 
@@ -79,12 +103,16 @@ class Cat(pygame.sprite.Sprite):
         # X ve Y yönünde hareket et
         if dx > 0:
             self.rect.x += min(dx, 2)  # Sağa doğru yürü, hız 2
+            self.direction = "right"
         elif dx < 0:
             self.rect.x += max(dx, -2)  # Sola doğru yürü, hız 2
+            self.direction = "left"
         if dy > 0:
             self.rect.y += min(dy, 2)  # Aşağı doğru yürü, hız 2
         elif dy < 0:
-            self.rect.y += max(dy, -2)  # Yukarı doğru yürü, hız 2  # Yukarı doğru yürü, hız 2
+            self.rect.y += max(dy, -2)  # Yukarı doğru yürü, hız 2
+
+        print(f"Kedinin konumu güncellendi: ({self.rect.x}, {self.rect.y})")
 
     def find_nearest_ball(self, balls):
         """En yakın topu bulur ve döndürür."""
@@ -102,7 +130,7 @@ class Cat(pygame.sprite.Sprite):
     def draw_menu(self, screen, x, y):
         """Kedinin sağ tıklama menüsünü çizer."""
         menu_width = 150
-        menu_height = 100
+        menu_height = 130  # Menü yüksekliğini artır
         menu_x = x
         menu_y = y
 
@@ -126,20 +154,33 @@ class Cat(pygame.sprite.Sprite):
         screen.blit(sleep_text, (menu_x + 10, menu_y + 70))
         pygame.draw.rect(screen, (0, 0, 0), (menu_x + menu_width - 30, menu_y + 70, 20, 20), 2) # Kare buton
 
-    def handle_menu_click(self, pos, house):
-        """Menüdeki tıklamaları işler."""
-        menu_x = self.rect.right
-        menu_y = self.rect.top
-        menu_width = 150
-        # Açlık butonuna tıklandıysa
-        if pygame.Rect(menu_x + menu_width - 30, menu_y + 10, 20, 20).collidepoint(pos):
-            self.hunger = min(100, self.hunger + 20)
-            logger.info("Açlık butonuna tıklandı. Yeni açlık değeri: " + str(self.hunger))
+        # Özelleştir
+        customize_text = font.render("Özelleştir", True, (0, 0, 0))
+        screen.blit(customize_text, (menu_x + 10, menu_y + menu_height - 30))  # Özelleştir butonunu aşağı kaydır
 
-        # Uyku butonuna tıklandıysa
-        elif pygame.Rect(menu_x + menu_width - 30, menu_y + 70, 20, 20).collidepoint(pos):
-            self.sleep_mode(house)
-            logger.info("Uyku butonuna tıklandı.")
+    def handle_menu_click(self, pos, house):
+         """Menüdeki tıklamaları işler."""
+         menu_x = self.rect.right
+         menu_y = self.rect.top
+         menu_width = 150
+         menu_height = 130
+
+         # Açlık butonuna tıklandıysa
+         if pygame.Rect(menu_x + menu_width - 30, menu_y + 10, 20, 20).collidepoint(pos):
+             self.hunger = min(100, self.hunger + 20)
+             logger.info("Açlık butonuna tıklandı. Yeni açlık değeri: " + str(self.hunger))
+
+         # Uyku butonuna tıklandıysa
+         elif pygame.Rect(menu_x + menu_width - 30, menu_y + 70, 20, 20).collidepoint(pos):
+             self.sleep_mode(house)
+             logger.info("Uyku butonuna tıklandı.")
+        
+        # Özelleştirme butonuna tıklandıysa
+         elif pygame.Rect(menu_x, menu_y + menu_height - 30, menu_width, 30).collidepoint(pos):
+            global current_menu
+            current_menu = customization_menu
+            self.show_menu = False
+            logger.info("Özelleştirme menüsüne geçildi.")
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
