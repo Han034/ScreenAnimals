@@ -1,7 +1,7 @@
 import pygame
 from utils import logger
 import math
-import time
+import time  # time modülünü ekleyin
 
 class Cat(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -33,7 +33,7 @@ class Cat(pygame.sprite.Sprite):
         self.last_position = self.rect.center  # Son konumu sakla
         self.last_moved_time = time.time()  # Son hareket zamanını sakla
 
-    def update(self, house,balls):
+    def update(self, house, balls):
         if self.is_sleeping:
             self.sleep = max(0, self.sleep - 0.05)
             self.is_inside_house = True
@@ -57,7 +57,7 @@ class Cat(pygame.sprite.Sprite):
 
         # Yürüme animasyonu kontrolü
         if self.walking_animation:
-            #print("Animasyon çalışıyor.")
+            print("Animasyon çalışıyor.")
             self.animation_counter += 1
             if self.animation_counter >= self.animation_speed:
                 self.animation_counter = 0
@@ -67,13 +67,9 @@ class Cat(pygame.sprite.Sprite):
                 elif self.direction == "left":
                     self.image = self.walking_images_left[self.current_walking_image]
 
-            # Kedinin mevcut hızı
-            dx = abs(self.rect.centerx - house.rect.centerx) # Evin merkezi ile aradaki mesafe (gereksiz, silinecek)
-            dy = abs(self.rect.centery - house.rect.centery) # Evin merkezi ile aradaki mesafe (gereksiz, silinecek)
-
-             # Eğer kedi hareket etmiyorsa ve animasyon açıksa, animasyonu durdur
-            if self.rect.center == self.last_position:  # Eğer kedi hareket etmiyorsa
-              if time.time() - self.last_moved_time > 1:  # ve 1 saniyeden fazla zaman geçmişse
+            # Eğer kedi hareket etmiyorsa ve animasyon açıksa, animasyonu durdur
+            if self.rect.center == self.last_position:
+              if time.time() - self.last_moved_time > 1:
                 self.walking_animation = False
                 self.animation_counter = 0
                 self.current_walking_image = 0
@@ -83,7 +79,7 @@ class Cat(pygame.sprite.Sprite):
                 nearest_ball = self.find_nearest_ball(balls)
                 if nearest_ball:
                   self.walk_to_target(nearest_ball.rect.centerx, nearest_ball.rect.centery)
-            else:  # Eğer kedi hareket ediyorsa
+            else:
               self.last_position = self.rect.center
               self.last_moved_time = time.time()
         else:
@@ -102,7 +98,7 @@ class Cat(pygame.sprite.Sprite):
             self.walking_animation = False
             self.animation_counter = 0
             self.current_walking_image = 0
-            self.image = self.original_image  # Orijinal görsele dön
+            self.image = self.original_image
             print("Kedi hedefe ulaştı, animasyon durduruldu.")
             return
 
@@ -122,7 +118,8 @@ class Cat(pygame.sprite.Sprite):
 
         self.last_position = self.rect.center  # Son konumu güncelle
         self.last_moved_time = time.time()  # Son hareket zamanını güncelle
-        #print(f"Kedinin konumu güncellendi: ({self.rect.x}, {self.rect.y})")
+
+        print(f"Kedinin konumu güncellendi: ({self.rect.x}, {self.rect.y})")
 
     def find_nearest_ball(self, balls):
         """En yakın topu bulur ve döndürür."""
@@ -140,7 +137,7 @@ class Cat(pygame.sprite.Sprite):
     def draw_menu(self, screen, x, y):
         """Kedinin sağ tıklama menüsünü çizer."""
         menu_width = 150
-        menu_height = 130  # Menü yüksekliğini artır
+        menu_height = 130
         menu_x = x
         menu_y = y
 
@@ -152,44 +149,42 @@ class Cat(pygame.sprite.Sprite):
         # Açlık
         hunger_text = font.render(f"Açlık: {int(self.hunger)}", True, (0, 0, 0))
         screen.blit(hunger_text, (menu_x + 10, menu_y + 10))
-        pygame.draw.rect(screen, (0, 0, 0), (menu_x + menu_width - 30, menu_y + 10, 20, 20), 2) # Kare buton
+        pygame.draw.rect(screen, (0, 0, 0), (menu_x + menu_width - 30, menu_y + 10, 20, 20), 2)
 
         # Mutluluk
         happiness_text = font.render(f"Mutluluk: {int(self.happiness)}", True, (0, 0, 0))
         screen.blit(happiness_text, (menu_x + 10, menu_y + 40))
-        pygame.draw.rect(screen, (0, 0, 0), (menu_x + menu_width - 30, menu_y + 40, 20, 20), 2) # Kare buton
+        pygame.draw.rect(screen, (0, 0, 0), (menu_x + menu_width - 30, menu_y + 40, 20, 20), 2)
 
         # Uyku
         sleep_text = font.render(f"Uyku: {int(self.sleep)}", True, (0, 0, 0))
         screen.blit(sleep_text, (menu_x + 10, menu_y + 70))
-        pygame.draw.rect(screen, (0, 0, 0), (menu_x + menu_width - 30, menu_y + 70, 20, 20), 2) # Kare buton
+        pygame.draw.rect(screen, (0, 0, 0), (menu_x + menu_width - 30, menu_y + 70, 20, 20), 2)
 
         # Özelleştir
         customize_text = font.render("Özelleştir", True, (0, 0, 0))
-        screen.blit(customize_text, (menu_x + 10, menu_y + menu_height - 30))  # Özelleştir butonunu aşağı kaydır
+        screen.blit(customize_text, (menu_x + 10, menu_y + menu_height - 30))
 
-    def handle_menu_click(self, pos, house,customization_menu):
-         """Menüdeki tıklamaları işler."""
-         global current_menu # current_menu ve CUSTOMIZATION_MENU değişkenlerini global olarak tanımla
-         menu_x = self.rect.right
-         menu_y = self.rect.top
-         menu_width = 150
-         menu_height = 130
+    def handle_menu_click(self, pos, house, game):
+        """Menüdeki tıklamaları işler."""
+        menu_x = self.rect.right
+        menu_y = self.rect.top
+        menu_width = 150
+        menu_height = 130
 
-         # Açlık butonuna tıklandıysa
-         if pygame.Rect(menu_x + menu_width - 30, menu_y + 10, 20, 20).collidepoint(pos):
-             self.hunger = min(100, self.hunger + 20)
-             logger.info("Açlık butonuna tıklandı. Yeni açlık değeri: " + str(self.hunger))
+        # Açlık butonuna tıklandıysa
+        if pygame.Rect(menu_x + menu_width - 30, menu_y + 10, 20, 20).collidepoint(pos):
+            self.hunger = min(100, self.hunger + 20)
+            logger.info("Açlık butonuna tıklandı. Yeni açlık değeri: " + str(self.hunger))
 
-         # Uyku butonuna tıklandıysa
-         elif pygame.Rect(menu_x + menu_width - 30, menu_y + 70, 20, 20).collidepoint(pos):
-             self.sleep_mode(house)
-             logger.info("Uyku butonuna tıklandı.")
-        
+        # Uyku butonuna tıklandıysa
+        elif pygame.Rect(menu_x + menu_width - 30, menu_y + 70, 20, 20).collidepoint(pos):
+            self.sleep_mode(house)
+            logger.info("Uyku butonuna tıklandı.")
+
         # Özelleştirme butonuna tıklandıysa
-         elif pygame.Rect(menu_x, menu_y + menu_height - 30, menu_width, 30).collidepoint(pos):
-            current_menu = customization_menu  # Artık parametre olarak alıyoruz
-            print(f"current_menu değeri (cat.py içinde): {current_menu}")  # Hata ayıklama için
+        elif pygame.Rect(menu_x, menu_y + menu_height - 30, menu_width, 30).collidepoint(pos):
+            game.switch_to_customization_menu()
             self.show_menu = False
             logger.info("Özelleştirme menüsüne geçildi.")
 
@@ -222,4 +217,25 @@ class Cat(pygame.sprite.Sprite):
             self.is_inside_house = False
 
     def draw(self, screen):
-        screen.blit(self.image, self.rect)  # Çizim için self.image kullan
+        screen.blit(self.image, self.rect)
+
+    def change_color(self, color):
+        """Kedinin rengini değiştirir."""
+        # Kedinin orijinal görselini kopyala ve self.original_image'ı güncelle
+        self.original_image = pygame.image.load("V2/assets/cat.png").convert_alpha()
+        self.original_image = pygame.transform.scale(self.original_image, (self.original_image.get_width() // 4, self.original_image.get_height() // 4))
+
+
+        # Kedi görselindeki her pikseli kontrol et
+        for x in range(self.original_image.get_width()):
+            for y in range(self.original_image.get_height()):
+                # Pikselin rengini al
+                pixel_color = self.original_image.get_at((x, y))
+
+                # Eğer piksel saydam değilse, rengi ayarla
+                if pixel_color.a > 0:
+                    self.original_image.set_at((x, y), color)
+        
+        self.image = self.original_image.copy() # Güncellenmiş görsel self.image'a da kopyalanmalı
+
+        logger.info(f"Kedi rengi değiştirildi: {color}")
