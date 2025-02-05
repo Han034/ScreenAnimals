@@ -1,10 +1,7 @@
 import pygame
 from utils import logger
 import math
-
-# Define the customization_menu variable
-# Bu eklenmeli mi ?
-customization_menu = None
+import time
 
 class Cat(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -33,8 +30,10 @@ class Cat(pygame.sprite.Sprite):
         ]
         self.current_walking_image = 0
         self.direction = "right"
+        self.last_position = self.rect.center  # Son konumu sakla
+        self.last_moved_time = time.time()  # Son hareket zamanını sakla
 
-    def update(self, house):
+    def update(self, house,balls):
         if self.is_sleeping:
             self.sleep = max(0, self.sleep - 0.05)
             self.is_inside_house = True
@@ -72,15 +71,24 @@ class Cat(pygame.sprite.Sprite):
             dx = abs(self.rect.centerx - house.rect.centerx) # Evin merkezi ile aradaki mesafe (gereksiz, silinecek)
             dy = abs(self.rect.centery - house.rect.centery) # Evin merkezi ile aradaki mesafe (gereksiz, silinecek)
 
-            # Eğer kedi hareket etmiyorsa ve animasyon açıksa, animasyonu durdur
-            if not (dx > 1 or dy > 1):  # Kedinin hareket edip etmediğini kontrol et
+             # Eğer kedi hareket etmiyorsa ve animasyon açıksa, animasyonu durdur
+            if self.rect.center == self.last_position:  # Eğer kedi hareket etmiyorsa
+              if time.time() - self.last_moved_time > 1:  # ve 1 saniyeden fazla zaman geçmişse
                 self.walking_animation = False
                 self.animation_counter = 0
                 self.current_walking_image = 0
-                self.image = self.original_image  # Orijinal görsele dön
+                self.image = self.original_image
+                logger.info("Kedi 1 saniyeden fazla süredir hareket etmedi, animasyon durduruldu ve takip fonksiyonu yeniden başlatılıyor.")
+                # Topu takip fonksiyonunu yeniden başlat
+                nearest_ball = self.find_nearest_ball(balls)
+                if nearest_ball:
+                  self.walk_to_target(nearest_ball.rect.centerx, nearest_ball.rect.centery)
+            else:  # Eğer kedi hareket ediyorsa
+              self.last_position = self.rect.center
+              self.last_moved_time = time.time()
         else:
             #print("Kedinin yürüme animasyonu kapalı")
-            self.image = self.original_image  # Animasyon yoksa orijinal görseli kullan
+            self.image = self.original_image
 
         #logger.info(f"Kedi Durumu - Açlık: {self.hunger}, Mutluluk: {self.happiness}, Uyku: {self.sleep}, Evin içinde mi: {self.is_inside_house}")
 
@@ -112,7 +120,9 @@ class Cat(pygame.sprite.Sprite):
         elif dy < 0:
             self.rect.y += max(dy, -2)  # Yukarı doğru yürü, hız 2
 
-        print(f"Kedinin konumu güncellendi: ({self.rect.x}, {self.rect.y})")
+        self.last_position = self.rect.center  # Son konumu güncelle
+        self.last_moved_time = time.time()  # Son hareket zamanını güncelle
+        #print(f"Kedinin konumu güncellendi: ({self.rect.x}, {self.rect.y})")
 
     def find_nearest_ball(self, balls):
         """En yakın topu bulur ve döndürür."""
@@ -158,8 +168,9 @@ class Cat(pygame.sprite.Sprite):
         customize_text = font.render("Özelleştir", True, (0, 0, 0))
         screen.blit(customize_text, (menu_x + 10, menu_y + menu_height - 30))  # Özelleştir butonunu aşağı kaydır
 
-    def handle_menu_click(self, pos, house):
+    def handle_menu_click(self, pos, house,customization_menu):
          """Menüdeki tıklamaları işler."""
+         global current_menu # current_menu ve CUSTOMIZATION_MENU değişkenlerini global olarak tanımla
          menu_x = self.rect.right
          menu_y = self.rect.top
          menu_width = 150
@@ -177,8 +188,8 @@ class Cat(pygame.sprite.Sprite):
         
         # Özelleştirme butonuna tıklandıysa
          elif pygame.Rect(menu_x, menu_y + menu_height - 30, menu_width, 30).collidepoint(pos):
-            global current_menu
-            current_menu = customization_menu
+            current_menu = customization_menu  # Artık parametre olarak alıyoruz
+            print(f"current_menu değeri (cat.py içinde): {current_menu}")  # Hata ayıklama için
             self.show_menu = False
             logger.info("Özelleştirme menüsüne geçildi.")
 

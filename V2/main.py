@@ -29,6 +29,7 @@ ball = Ball(150, 30)
 balls.add(ball)
 
 # Menü durumları
+global MAIN_MENU, CUSTOMIZATION_MENU # Değişkenleri global olarak tanımla
 MAIN_MENU = 0
 CUSTOMIZATION_MENU = 1
 current_menu = MAIN_MENU
@@ -50,7 +51,7 @@ def draw_customization_menu(screen):
     menu_y = screen_height // 2 - menu_height // 2
 
     # Menü arkaplanı
-    pygame.draw.rect(screen, (200, 200, 200), (menu_x, menu_y, menu_width, menu_height))
+    pygame.draw.rect(screen, (255, 0, 0), (menu_x, menu_y, menu_width, menu_height))
 
     font = pygame.font.Font(None, 30)
 
@@ -151,34 +152,53 @@ while running:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
                 if cat.rect.collidepoint(event.pos):
                     cat.show_menu = True
+                else:
+                    top_x = event.pos[0]
+                    top_y = event.pos[1]
+                    if not any(ball.rect.collidepoint(event.pos) for ball in balls):
+                        new_ball = Ball(top_x, top_y)
+                        balls.add(new_ball)
+                        new_ball.velocity = [0, 0]
+                        logger.info(f"Top oluşturuldu. Konum: ({top_x}, {top_y})")
 
-            elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
-                if cat.show_menu:
-                    cat.handle_menu_click(event.pos, house)
+            if cat.show_menu:
+                if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                    cat.handle_menu_click(event.pos, house, CUSTOMIZATION_MENU)
 
         elif current_menu == CUSTOMIZATION_MENU:
             handle_customization_menu_event(event)
 
     # Objelerin durumunu güncelle
-    cat.update(house)
+    cat.update(house,balls)
     balls.update()
 
     # Kedi topa doğru yürüyecek mi?
     if len(balls) > 0 and not cat.is_inside_house:
         nearest_ball = cat.find_nearest_ball(balls)
         if nearest_ball:
+            cat_walking_to_ball = True
             cat.walk_to_target(nearest_ball.rect.centerx, nearest_ball.rect.centery)
             # Top yakalandı mı?
             distance = math.sqrt((cat.rect.centerx - nearest_ball.rect.centerx)**2 + (cat.rect.centery - nearest_ball.rect.centery)**2)
             if distance < 5:  # Yakalama mesafesini küçült (örneğin 5 piksel)
                 balls.remove(nearest_ball)
                 cat.walking_animation = False
+        else:
+            cat_walking_to_ball = False
+    else:
+        cat_walking_to_ball = False
 
     if cat.dragging:
         cat.show_menu = False
 
     # Ekranı temizle
     screen.fill((255, 255, 255))
+
+    # Özelleştirme menüsünü çiz (eğer gösteriliyorsa)
+    print(f"current_menu değeri (main.py, çizim öncesi): {current_menu}")  # Hata ayıklama için
+    if current_menu == CUSTOMIZATION_MENU:
+        print(f"current_menu değeri (main.py, çizim İÇİNDE): {current_menu}")  # Hata ayıklama için
+        draw_customization_menu(screen)
 
     # Objeleri çiz
     balls.draw(screen)
@@ -188,10 +208,6 @@ while running:
     # Kedinin menüsünü çiz (eğer gösteriliyorsa)
     if cat.show_menu and current_menu == MAIN_MENU:
         cat.draw_menu(screen, cat.rect.right, cat.rect.top)
-
-    # Özelleştirme menüsünü çiz (eğer gösteriliyorsa)
-    if current_menu == CUSTOMIZATION_MENU:
-        draw_customization_menu(screen)
 
     # Ekranı güncelle
     pygame.display.flip()
